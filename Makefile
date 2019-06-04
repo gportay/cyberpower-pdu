@@ -26,8 +26,7 @@ install-bash-completion:
 
 .PHONY: uninstall
 uninstall:
-	install -d $(DESTDIR)$(PREFIX)/bin/
-	install -m 755 cyberpower-pdu $(DESTDIR)$(PREFIX)/bin/
+	rm -f $(DESTDIR)$(PREFIX)/bin/cyberpower-pdu
 	completionsdir=$$(pkg-config --define-variable=prefix=$(PREFIX) \
 	                             --variable=completionsdir \
 	                             bash-completion); \
