@@ -1,0 +1,33 @@
+#
+# Copyright 2019 Gaël PORTAY
+#
+# SPDX-License-Identifier: LGPL-3-or-later
+#
+
+_cyberpower-pdu()
+{
+	local cur prev words cword
+	_init_completion || return
+
+	if [[ "$cword" -gt 3 ]]
+	then
+		return
+	fi
+
+	if [[ "$cword" -gt 2 ]]
+	then
+		COMPREPLY=( $( compgen -W "on off reboot cancel" -- "$cur" ) )
+		return
+	fi
+
+	if [[ "$cword" -gt 1 ]]
+	then
+		local outlets
+		outlets="$(cyberpower-pdu "$prev")"
+		COMPREPLY=( $( compgen -W "$outlets" -- "$cur" ) )
+		return
+	fi
+
+	_known_hosts_real -- "$cur"
+} &&
+complete -F _cyberpower-pdu cyberpower-pdu 

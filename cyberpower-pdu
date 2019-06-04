@@ -1,0 +1,101 @@
+#!/bin/bash
+#
+# Copyright 2019 Gaël PORTAY
+#
+# SPDX-License-Identifier: LGPL-3-or-later
+#
+
+set -e
+set -o pipefail
+
+if [ $# -lt 1 ]
+then
+	cat <<EOF
+Usage: ${0##*/} AGENT
+       ${0##*/} AGENT OUTLET_NUM|OUTLET_NAME
+       ${0##*/} AGENT OUTLET_NUM|OUTLET_NAME ACTION
+
+Actions:
+	1 or on		Turn On.
+	2 or off	Turn Off
+	3 or reboot	Reboot.
+	4 or cancel	Cancel pending command.
+
+Examples:
+	# Lists all outlets:
+	$ ${0##*/} 127.0.0.1
+	my_first_outlet
+	your_second_outlet
+
+	# Get status for the first outlet:
+	$ ${0##*/} 127.0.0.1 my_first_outlet
+	ON
+
+	# Turn off the second outlet
+	$ ${0##*/} 127.0.0.1 your_second_outlet off
+	OFF
+EOF
+	exit 1
+fi
+
+declare -A ACTIONS
+ACTIONS["1"]=1
+ACTIONS["2"]=2
+ACTIONS["3"]=3
+ACTIONS["4"]=4
+ACTIONS["on"]=1
+ACTIONS["off"]=2
+ACTIONS["reboot"]=3
+ACTIONS["cancel"]=4
+
+declare -A ACTIONS_STRING
+ACTIONS_STRING["0"]="(unknown?)"
+ACTIONS_STRING["1"]="ON"
+ACTIONS_STRING["2"]="OFF"
+ACTIONS_STRING["3"]="REBOOT"
+ACTIONS_STRING["4"]="CANCEL"
+
+# Get outlets from PDU
+OID_OUTLETS="SNMPv2-SMI::enterprises.3808.1.1.3.3.3.1.1"
+mapfile -t OUTLETS < <(snmpwalk -v 1 -c private "$1" "$OID_OUTLETS.2")
+declare -A OUTLETS_BY_NAME
+for outlet in "${OUTLETS[@]}"
+do
+	read -r -a words < <(echo "$outlet")	
+	eval "OUTLETS_BY_NAME[${words[-1]}]='${words[0]/$OID_OUTLETS.2./}'"
+done
+
+# Usage: cyberpower-pdu IP
+if [[ $# -lt 2 ]]
+then
+	# List all outlets.
+	for outlet in "${!OUTLETS_BY_NAME[@]}"
+	do
+		echo "$outlet"
+	done
+	exit
+fi
+
+# Get outlet num from $2
+num="$2"
+if [[ ! $2 =~ ^[0-9]+$ ]]
+then
+	num="${OUTLETS_BY_NAME[$num]}"
+	if [[ ! "$num" ]]
+	then
+		echo "$2: No such outlet" >&2
+		exit 1
+	fi
+fi
+
+# Usage: cyberpower-pdu IP OUTLET_NUM|OUTLET_NAME
+if [[ $# -lt 3 ]]
+then
+	read -r -a STATUS < <(snmpwalk -v 1 -c private "$1" "$OID_OUTLETS.4.$num")
+	echo "${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]}}"
+	exit
+fi
+
+# Usage: cyberpower-pdu IP OUTLET_NUM|OUTLET_NAME ACTION
+read -r -a STATUS < <(snmpset -v 1 -c private "$1" "$OID_OUTLETS.4.$num" i "${ACTIONS[$3]:-$3}" "${@:4}")
+echo "${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]:-0}}"
