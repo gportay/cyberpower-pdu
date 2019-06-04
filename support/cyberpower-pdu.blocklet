@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# Copyright 2019 Gaël PORTAY
+#
+# SPDX-License-Identifier: GPL-3-or-later
+#
+
+set -e
+
+if [[ $# -eq 0 ]]
+then
+	cat <<EOF >&2
+Usage: ${0##*/} AGENT OUTLET 
+EOF
+	exit 1
+fi
+
+case "${3:-$button}" in
+1|on)
+	cyberpower-pdu "$1" "$2" "${3:-$button}"
+	exit
+	;;
+2|off)
+	cyberpower-pdu "$1" "$2" "${3:-$button}"
+	exit
+	;;
+3|reboot)
+	cyberpower-pdu "$1" "$2" "${3:-$button}"
+	exit
+	;;
+esac
+
+if ! cyberpower-pdu "$1" "$2" 2>&1
+then
+	exit 33
+fi
