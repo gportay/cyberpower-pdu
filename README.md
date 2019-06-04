@@ -31,7 +31,7 @@ outlets.
 **4** or **cancel**
 	Cancel pending command.
 
-## Examples
+## EXAMPLES 
 
 Lists all outlets:
 
