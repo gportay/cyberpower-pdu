@@ -1,0 +1,25 @@
+# Maintainer: Gaël PORTAY <gael.portay@gmail.com>
+
+pkgname=cyberpower-pdu
+pkgver=master
+pkgrel=1
+pkgdesc='CyberPower PDU - manages remote outlets'
+arch=('any')
+url="https://github.com/gportay/$pkgname"
+license=('MIT')
+depends=('net-snmp')
+makedepends=('asciidoctor')
+source=("https://github.com/gportay/$pkgname/archive/$pkgver.tar.gz")
+md5sums=('SKIP')
+
+build() {
+	cd "$srcdir/$pkgname-$pkgver"
+
+	make doc
+}
+
+package() {
+	cd "$srcdir/$pkgname-$pkgver"
+
+	make install-all PREFIX="/usr" DESTDIR="$pkgdir"
+}
