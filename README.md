@@ -26,7 +26,7 @@ outlets.
 	Turn Off.
 
 **3** or **reboot**
-	Reboot
+	Reboot.
 
 **4** or **cancel**
 	Cancel pending command.
