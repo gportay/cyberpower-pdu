@@ -27,9 +27,9 @@ install-doc:
 
 .PHONY: install-bash-completion
 install-bash-completion:
-	completionsdir=$$(pkg-config --define-variable=prefix=$(PREFIX) \
+	completionsdir=$${BASHCOMPLETIONSDIR:-$$(pkg-config --define-variable=prefix=$(PREFIX) \
 	                             --variable=completionsdir \
-	                             bash-completion); \
+	                             bash-completion)}; \
 	if [ -n "$$completionsdir" ]; then \
 		install -d $(DESTDIR)$$completionsdir/; \
 		install -m 644 bash-completion $(DESTDIR)$$completionsdir/cyberpower-pdu; \
@@ -39,9 +39,9 @@ install-bash-completion:
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/cyberpower-pdu
 	rm -f $(DESTDIR)$(PREFIX)/share/man/man1/cyberpower-pdu.1.gz
-	completionsdir=$$(pkg-config --define-variable=prefix=$(PREFIX) \
+	completionsdir=$${BASHCOMPLETIONSDIR:-$$(pkg-config --define-variable=prefix=$(PREFIX) \
 	                             --variable=completionsdir \
-	                             bash-completion); \
+	                             bash-completion)}; \
 	if [ -n "$$completionsdir" ]; then \
 		rm -f $(DESTDIR)$$completionsdir/cyberpower-pdu; \
 	fi
@@ -51,7 +51,7 @@ user-install-all: user-install user-install-doc user-install-bash-completion
 
 user-install user-install-doc user-install-bash-completion user-uninstall:
 user-%:
-	$(MAKE) $* PREFIX=$$HOME/.local
+	$(MAKE) $* PREFIX=$$HOME/.local BASHCOMPLETIONSDIR=$$HOME/.local/share/bash-completion/completions
 
 .PHONY: check
 check:
