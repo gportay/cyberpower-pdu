@@ -57,6 +57,10 @@ user-%:
 check:
 	shellcheck cyberpower-pdu
 
+.PHONY: clean
+clean:
+	rm -f cyberpower-pdu.1.gz
+
 %.1: %.1.adoc
 	asciidoctor -b manpage -o $@ $<
 
