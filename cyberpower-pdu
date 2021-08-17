@@ -24,8 +24,8 @@ Actions:
 Examples:
 	# Lists all outlets:
 	$ ${0##*/} 127.0.0.1
-	my_first_outlet
-	your_second_outlet
+	my_first_outlet		OFF
+	your_second_outlet	ON
 
 	# Get status for the first outlet:
 	$ ${0##*/} 127.0.0.1 my_first_outlet
@@ -71,7 +71,10 @@ then
 	# List all outlets.
 	for outlet in "${!OUTLETS_BY_NAME[@]}"
 	do
-		echo "$outlet"
+		num="${OUTLETS_BY_NAME[$outlet]}"
+		read -r -a STATUS < <(snmpwalk -v 1 -c private "$1" "$OID_OUTLETS.4.$num")
+		echo "$outlet ${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]}}"
+		
 	done
 	exit
 fi
