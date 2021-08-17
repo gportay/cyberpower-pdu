@@ -36,8 +36,8 @@ outlets.
 Lists all outlets:
 
 	$ cyberpower-pdu 127.0.0.1
-	my_first_outlet
-	your_second_outlet
+	my_first_outlet		OFF
+	your_second_outlet	ON
 
 Get status for the first outlet:
 
