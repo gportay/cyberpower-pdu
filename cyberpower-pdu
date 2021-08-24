@@ -59,10 +59,14 @@ ACTIONS_STRING["4"]="CANCEL"
 OID_OUTLETS="SNMPv2-SMI::enterprises.3808.1.1.3.3.3.1.1"
 mapfile -t OUTLETS < <(snmpwalk -v 1 -c private "$1" "$OID_OUTLETS.2")
 declare -A OUTLETS_BY_NAME
+MAX_COL_SIZE=0
 for outlet in "${OUTLETS[@]}"
 do
-	read -r -a words < <(echo "$outlet")	
-	eval "OUTLETS_BY_NAME[${words[-1]}]='${words[0]/$OID_OUTLETS.2./}'"
+	[[ $outlet =~ $OID_OUTLETS\.2\.([0-9]).{11}\"(.+)\" ]]
+	eval "OUTLETS_BY_NAME[${BASH_REMATCH[2]}]='${BASH_REMATCH[1]}'"
+	if [ ${#BASH_REMATCH[2]} -gt $MAX_COL_SIZE ]; then
+		MAX_COL_SIZE=${#BASH_REMATCH[2]}
+	fi
 done
 
 # Usage: cyberpower-pdu IP
@@ -73,8 +77,7 @@ then
 	do
 		num="${OUTLETS_BY_NAME[$outlet]}"
 		read -r -a STATUS < <(snmpwalk -v 1 -c private "$1" "$OID_OUTLETS.4.$num")
-		echo "$outlet ${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]}}"
-		
+		printf "%-$(( $MAX_COL_SIZE + 1 ))s %-10s\n" "$outlet" "${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]}}"
 	done
 	exit
 fi
