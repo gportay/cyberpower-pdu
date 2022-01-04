@@ -9,12 +9,12 @@
 set -e
 set -o pipefail
 
-if [ $# -lt 1 ] || [[ $@ =~ --help ]] || [[ $@ =~ -h ]] || ! [[ $1 =~ [0-9]+\.[0-9]+\.[0-9]+\.[0-9] ]]
+if [ $# -lt 1 ] || [[ $@ =~ --help ]] || [[ $@ =~ -h ]]
 then
 	cat <<EOF
-Usage:	${0##*/} IP
-	${0##*/} IP [OUTLET_NUM|OUTLET_NAME]
-	${0##*/} IP [OUTLET_NUM|OUTLET_NAME] [ACTION|RENAME <STRING>]
+Usage:	${0##*/} [IP|HOSTNAME]
+	${0##*/} [IP|HOSTNAME] [OUTLET_NUM|OUTLET_NAME]
+	${0##*/} [IP|HOSTNAME] [OUTLET_NUM|OUTLET_NAME] [ACTION|RENAME <STRING>]
 
 Actions:
 	1 or on		Turn On.
@@ -25,15 +25,15 @@ Actions:
 Examples:
 	# Lists all outlets:
 	$ ${0##*/} 127.0.0.1
-	1 my_first_outlet		OFF
+	1 my_first_outlet	OFF
 	2 your_second_outlet	ON
 
 	# Get status for the first outlet:
-	$ ${0##*/} 127.0.0.1 my_first_outlet
+	$ ${0##*/} localhost my_first_outlet
 	ON
 
 	# Turn off the second outlet
-	$ ${0##*/} 127.0.0.1 2 off
+	$ ${0##*/} localhost 2 off
 	OFF
 
 	# Rename an outlet
