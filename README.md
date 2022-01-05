@@ -6,11 +6,11 @@
 
 ## SYNOPSIS
 
-**cyberpower-pdu** [AGENT]
+**cyberpower-pdu** [IP|HOSTNAME]
 
-**cyberpower-pdu** [AGENT] [OUTLET_NUM|OUTLET_NAME]
+**cyberpower-pdu** [IP|HOSTNAME] [OUTLET_NUM|OUTLET_NAME]
 
-**cyberpower-pdu** [AGENT] [OUTLET_NUM|OUTLET_NAME] [ACTION]
+**cyberpower-pdu** [IP|HOSTNAME] [OUTLET_NUM|OUTLET_NAME] [ACTION|RENAME <STRING>]
 
 ## DESCRIPTION
 
@@ -41,13 +41,23 @@ Lists all outlets:
 
 Get status for the first outlet:
 
-	$ cyberpower-pdu 127.0.0.1 my_first_outlet
+	$ cyberpower-pdu localhost my_first_outlet
 	ON
 
 Turn off the second outlet
 
-	$ cyberpower-pdu 127.0.0.1 your_second_outlet off
+	$ cyberpower-pdu localhost 2 off
 	OFF
+
+Rename an outlet
+
+	$ cyberpower-pdu 127.0.0.1 your_second_outlet rename new_name
+	Renamed outlet 2 from your_second_outlet to new_name
+
+## INSTALLATION
+
+	$ sudo apt-add-repository multiverse && sudo apt-get update
+	$ sudo apt install snmp snmp-mibs-downloader
 
 ## AUTHOR
 
