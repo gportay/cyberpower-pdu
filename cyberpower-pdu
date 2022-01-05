@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Copyright 2019 Gaël PORTAY
+# Copyright (C) 2021 Blu Wireless Technology Ltd.
 #
 # SPDX-License-Identifier: LGPL-3-or-later
 #
@@ -8,12 +9,12 @@
 set -e
 set -o pipefail
 
-if [ $# -lt 1 ]
+if [ $# -lt 1 ] || [[ $@ =~ --help ]] || [[ $@ =~ -h ]]
 then
 	cat <<EOF
-Usage: ${0##*/} AGENT
-       ${0##*/} AGENT OUTLET_NUM|OUTLET_NAME
-       ${0##*/} AGENT OUTLET_NUM|OUTLET_NAME ACTION
+Usage:	${0##*/} [IP|HOSTNAME]
+	${0##*/} [IP|HOSTNAME] [OUTLET_NUM|OUTLET_NAME]
+	${0##*/} [IP|HOSTNAME] [OUTLET_NUM|OUTLET_NAME] [ACTION|RENAME <STRING>]
 
 Actions:
 	1 or on		Turn On.
@@ -24,16 +25,20 @@ Actions:
 Examples:
 	# Lists all outlets:
 	$ ${0##*/} 127.0.0.1
-	my_first_outlet
-	your_second_outlet
+	1 my_first_outlet	OFF
+	2 your_second_outlet	ON
 
 	# Get status for the first outlet:
-	$ ${0##*/} 127.0.0.1 my_first_outlet
+	$ ${0##*/} localhost my_first_outlet
 	ON
 
 	# Turn off the second outlet
-	$ ${0##*/} 127.0.0.1 your_second_outlet off
+	$ ${0##*/} localhost 2 off
 	OFF
+
+	# Rename an outlet
+	$ ${0##*/} 127.0.0.1 your_second_outlet rename new_name
+	Renamed outlet 2 from your_second_outlet to new_name
 EOF
 	exit 1
 fi
@@ -57,21 +62,32 @@ ACTIONS_STRING["4"]="CANCEL"
 
 # Get outlets from PDU
 OID_OUTLETS="SNMPv2-SMI::enterprises.3808.1.1.3.3.3.1.1"
-mapfile -t OUTLETS < <(snmpwalk -v 1 -c private "$1" "$OID_OUTLETS.2")
+OID_OUTLET_NAMES="SNMPv2-SMI::enterprises.3808.1.1.3.3.4.1.1.2"
+
+IP=$1
+
+mapfile -t OUTLETS < <(snmpwalk -v 2c -c private "$IP" "$OID_OUTLETS.2")
 declare -A OUTLETS_BY_NAME
+declare -A OUTLETS_BY_NUM
+MAX_COL_SIZE=0
 for outlet in "${OUTLETS[@]}"
 do
-	read -r -a words < <(echo "$outlet")	
-	eval "OUTLETS_BY_NAME[${words[-1]}]='${words[0]/$OID_OUTLETS.2./}'"
+	[[ $outlet =~ $OID_OUTLETS\.2\.([0-9]).{11}\"(.+)\" ]]
+	eval "OUTLETS_BY_NUM[${BASH_REMATCH[1]}]=\"${BASH_REMATCH[2]}\""
+	eval "OUTLETS_BY_NAME["${BASH_REMATCH[2]}"]=${BASH_REMATCH[1]}"
+	if [ ${#BASH_REMATCH[2]} -gt $MAX_COL_SIZE ]; then
+		MAX_COL_SIZE=${#BASH_REMATCH[2]}
+	fi
 done
 
 # Usage: cyberpower-pdu IP
 if [[ $# -lt 2 ]]
 then
 	# List all outlets.
-	for outlet in "${!OUTLETS_BY_NAME[@]}"
+	for i in {1..8}
 	do
-		echo "$outlet"
+		read -r -a STATUS < <(snmpwalk -v 2c -c private "$IP" "$OID_OUTLETS.4.$i")
+		printf "$i %-$(( $MAX_COL_SIZE + 1 ))s %-10s\n" "${OUTLETS_BY_NUM[$i]}" "${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]}}"
 	done
 	exit
 fi
@@ -91,11 +107,18 @@ fi
 # Usage: cyberpower-pdu IP OUTLET_NUM|OUTLET_NAME
 if [[ $# -lt 3 ]]
 then
-	read -r -a STATUS < <(snmpwalk -v 1 -c private "$1" "$OID_OUTLETS.4.$num")
+	read -r -a STATUS < <(snmpwalk -v 2c -c private "$IP" "$OID_OUTLETS.4.$num")
 	echo "${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]}}"
 	exit
 fi
 
-# Usage: cyberpower-pdu IP OUTLET_NUM|OUTLET_NAME ACTION
-read -r -a STATUS < <(snmpset -v 1 -c private "$1" "$OID_OUTLETS.4.$num" i "${ACTIONS[$3]:-$3}" "${@:4}")
-echo "${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]:-0}}"
+# Usage: cyberpower-pdu IP OUTLET_NUM|OUTLET_NAME RENAME <STRING>
+if [[ $3 == "rename" ]]
+then
+	read -r -a STATUS < <(snmpset -v 2c -c private  "$IP" "$OID_OUTLET_NAMES.$num" s "$4")
+	echo "Renamed outlet $num from ${OUTLETS_BY_NUM[$num]} to $4"
+else
+	# Usage: cyberpower-pdu IP OUTLET_NUM|OUTLET_NAME ACTION
+	read -r -a STATUS < <(snmpset -v 2c -c private "$IP" "$OID_OUTLETS.4.$num" i "${ACTIONS[$3]:-$3}" "${@:4}")
+	echo "${ACTIONS_STRING[${STATUS[-1]:-0}]:-${STATUS[-1]:-0}}"
+fi
